@@ -4,7 +4,9 @@ Operated by the **unified orchestrator-Claude** at `C:\Users\bibleman\`. If you 
 this workspace, hand off to the user-home Claude (it has full cross-repo + substrate context).
 
 **STATUS: substrate-assembly phase. NO ATU/sense-line work until the Greek textual fabric
-reaches parity** (see `README.md` + `~/repos/atu-method/docs/` substrate doctrine). Fabric first.
+reaches parity** (see `README.md` + `~/repos/atu-method/docs/substrate.md` — the Textual Fabric Doctrine). Fabric first.
+
+**Substrate ACQUIRED 2026-05-27 (PARTIAL):** `CenterBLC/LXX` = full Rahlfs-1935 **gold morphology** in Text-Fabric; `UD_Ancient_Greek-PTNK` = **gold syntax for Genesis+Ruth ONLY** (the only LXX syntax treebank in existence); UD-Greek PROIEL/Perseus (calibration). Plus **CATSS mirrored** (lxxmorph 67 files + LXX↔MT parallel 51 files) from the at-risk 1994 server. All at `~/repos/biblical-corpora/lxx-substrate/`. So LXX = gold morph corpus-wide, gold *syntax* only for a sample — between BoFM (none) and Vulgate (full gold). Stan to send the CATSS courtesy declaration (R. Kraft d.2023 — confirm current steward). Inventories: `research/SUBSTRATE-INVENTORY.md` + `research/TOOLING-TEXTFABRIC.md`.
 
 - What this is: a colometric ATU reading edition of the Septuagint. Sibling to
   readers-tanakh/gnt/bofm/vulgate.
