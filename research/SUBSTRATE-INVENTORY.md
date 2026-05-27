@@ -2,7 +2,12 @@
 <!-- Written by substrate-acquisition agent, 2026-05-27 -->
 
 Acquisition run for the readers-lxx project. Protocol: VERIFY then ACQUIRE-or-REPORT.
-All acquired data lands in `C:\Users\bibleman\repos\biblical-corpora\lxx-substrate\`.
+
+**DATA LOCATION (relocated 2026-05-27):** the substrate now lives in this repo's own gitignored
+folder — `readers-lxx/private/substrate/` — per "each project gets its intuitive data" (Stan).
+Cell paths below read `lxx-substrate/X/`; the live path is `private/substrate/X/` (e.g.
+`private/substrate/centerblc-lxx/`). It moved out of the shared `biblical-corpora/` vendored
+container so reader-specific data co-locates with its reader.
 
 ---
 
