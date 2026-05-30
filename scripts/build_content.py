@@ -189,6 +189,9 @@ def split_eng_to_lines(eng_text, atu_lines):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--book", default=None, help="TF book_code, e.g. GEN or RUTH")
+    ap.add_argument("--grk-only", action="store_true",
+                    help="Regenerate Greek text-files only; do NOT overwrite "
+                         "eng-brenton (preserves the LLM-aligned per-ATU Brenton).")
     args = ap.parse_args()
 
     api = lx.load_api()
@@ -239,7 +242,8 @@ def main():
                 eng_blocks.append((ref, eng_lines))
 
             write_chapter(GRK_DIR, slug, idx, chap, grk_blocks)
-            write_chapter(ENG_DIR, slug, idx, chap, eng_blocks)
+            if not args.grk_only:
+                write_chapter(ENG_DIR, slug, idx, chap, eng_blocks)
 
         pct = (100.0 * book_aligned / book_verses) if book_verses else 0.0
         print(f"  {slug:<8} {len(chs):>2} ch  {book_verses:>4} TF-vv  "

@@ -861,6 +861,19 @@
     cursor: pointer;
     transition: all 0.15s;
     line-height: 1.3;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+  .landing-book-name {
+    display: block;
+  }
+  .landing-book-greek {
+    display: block;
+    font-size: 0.78em;
+    color: var(--text-faint);
+    letter-spacing: 0.01em;
   }
   .landing-book:hover {
     background: var(--accent-dim);
@@ -1319,8 +1332,8 @@
 
 <script>
 const BOOKS = {
-  'genesis': { name: 'Genesis', short: 'Gen', chapters: 50 },
-  'ruth':    { name: 'Ruth',    short: 'Rth', chapters: 4 },
+  'genesis': { name: 'Genesis', short: 'Gen', chapters: 50, greek: 'Γένεσις' },
+  'ruth':    { name: 'Ruth',    short: 'Rth', chapters: 4,  greek: 'Ῥούθ' },
 };
 
 const BOOK_KEYS = Object.keys(BOOKS);
@@ -2941,7 +2954,17 @@ function buildLandingBooks() {
       const btn = document.createElement('div');
       btn.className = 'landing-book';
       btn.setAttribute('data-book', slug);
-      btn.textContent = book.short || book.name;
+      const primary = document.createElement('span');
+      primary.className = 'landing-book-name';
+      primary.textContent = book.name;
+      btn.appendChild(primary);
+      if (book.greek) {
+        const secondary = document.createElement('span');
+        secondary.className = 'landing-book-greek';
+        secondary.setAttribute('lang', 'grc');
+        secondary.textContent = book.greek;
+        btn.appendChild(secondary);
+      }
       btn.title = book.name;
       btn.onclick = () => toggleLandingBook(slug);
       grid.appendChild(btn);
