@@ -1,0 +1,2 @@
+30:1
+\f + \fr 30:1 \ft See chapter 24 for the content of chapter 30.\f*

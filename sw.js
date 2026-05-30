@@ -11,7 +11,7 @@
  * Bump CACHE_VERSION on each deploy so old caches are purged. The in-app
  * "Refresh content" button also clears all caches.
  */
-const CACHE_VERSION = 'lxx-reader-v1.5-2026-05-29-silver-projection';
+const CACHE_VERSION = 'lxx-reader-v1.5-2026-05-30-hebrew-projection-full-ot';
 const SHELL = ['./', 'index.html'];
 
 self.addEventListener('install', (event) => {
