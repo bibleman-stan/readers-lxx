@@ -235,6 +235,21 @@ def _is_causal_anaphoric_ground(api, w, children_of):
     return True
 
 
+def _is_frame_quote(api, w):
+    """Frame|quote BREAK: w is a ccomp/csubj clause-head whose governor is a
+    content-taking matrix verb (_CONTENT_VERBS — speech/cognition/perception).
+    Then w is the QUOTE/CONTENT-clause; break the default ccomp BIND so the
+    speech/cognition frame and its content render on separate ATU lines.
+
+    Validated cross-corpus: BHSA Hebrew (original), BoFM EModE (197 instances,
+    0 regressions, deployed 2026-05-27), GNT (Macula). Ported here unchanged
+    -- only the Greek lemma set (_CONTENT_VERBS) is the language-specific part."""
+    gov = api.E.head.f(w)
+    if not gov:
+        return False
+    return (api.F.lemma.v(gov[0]) or "") in _CONTENT_VERBS
+
+
 def _clause_head_of(api, w):
     if is_clause_head(api, w):
         return w
@@ -298,7 +313,10 @@ def generate(book_code, chap):
                 bind[w] = True  # non-finite participle/infinitive frame binds
             continue
         if rel in BIND_RELS:
-            bind[w] = True
+            if rel in ("ccomp", "csubj", "csubj:pass") and _is_frame_quote(api, w):
+                bind[w] = False  # frame|quote BREAK
+            else:
+                bind[w] = True
             continue
         bind[w] = False
 

@@ -67,8 +67,13 @@ _WS_RE = re.compile(r"\s+")
 _FOOTNOTE_RE = re.compile(r"\\f\s.*?\\f\*", re.DOTALL)
 _CROSSREF_RE = re.compile(r"\\x\s.*?\\x\*", re.DOTALL)
 _INLINE_MARKER_RE = re.compile(r"\\(?:sc|nd|wj|qt|tl|bd|it|em|bk|pn|qs|qac|sig|ord|no|sup|add)\*?")
-_PARA_MARKER_RE = re.compile(r"^\\(?:p|m|q[0-9]*|li[0-9]*|pi[0-9]*|s[0-9]*|nb|b|cls|qm[0-9]*|qa|pc|pmo|pmc|pmr|cl|d)\b.*$",
-                              re.MULTILINE)
+_PARA_MARKER_RE = re.compile(
+    r"\\(?:p|m|q[0-9]*|li[0-9]*|pi[0-9]*|s[0-9]*|nb|b|cls|qm[0-9]*|qa|pc|pmo|pmc|pmr|cl|d)\b[ \t]*"
+)
+# Strip ONLY the marker token (and any trailing tabs/spaces on the same line),
+# preserving inline text that follows on the same line. The old `^...\.*$`
+# variant consumed the rest of the line, silently dropping continuation prose
+# like Gen 35:22's "\p And the sons of Jacob were twelve."
 # Generic stray-backslash-marker sweep (catches anything we didn't enumerate)
 _STRAY_BACKSLASH_RE = re.compile(r"\\[a-zA-Z][a-zA-Z0-9]*\*?")
 
@@ -85,6 +90,32 @@ def clean_brenton_text(s):
     s = _STRAY_BACKSLASH_RE.sub("", s)
     s = _WS_RE.sub(" ", s).strip()
     return s
+
+
+def apply_versification(eng, book_code):
+    """Remap Brenton verse-keys onto PTNK's versification.
+
+    PTNK uses MT-style verse numbering; Brenton uses LXX-tradition numbering.
+    The known divergence inside the Gen+Ruth gold-syntax window is Gen 32:
+    Brenton Gen 32 has 33 verses (v1 = 'And Laban rose up...' — counted as
+    31:55 in some MT traditions, omitted from PTNK Gen 32 entirely; v2-v33 =
+    Jacob narrative). PTNK Gen 32 has 32 verses starting from 'Jacob departed'.
+
+    Shift: PTNK 32:N <- Brenton 32:N+1 for N=1..32. Brenton 32:1 (Laban) has
+    no PTNK match; drop it (versification divergence; the Laban content is
+    available in standalone Brenton readings).
+    """
+    if book_code != "GEN":
+        return eng
+    out = {}
+    for (c, v), t in eng.items():
+        if c == 32:
+            if v == 1:
+                continue  # Brenton 32:1 (Laban) -- no PTNK match
+            out[(32, v - 1)] = t
+        else:
+            out[(c, v)] = t
+    return out
 
 
 def load_brenton(usfm_filename):
@@ -133,6 +164,13 @@ def load_brenton(usfm_filename):
             cur_verse = None
             cur_text_parts = []
             # Anything after \c N on the same line is rare; ignore.
+            continue
+        # Sub-verse marker: \v Na  (e.g. \v 50a) -- USFM's way of marking
+        # a sub-verse split. Treat as continuation of the CURRENT verse;
+        # drop the marker token, keep the trailing prose.
+        sub_m = re.match(r"^\\v\s+\d+[a-z]+\s*(.*)$", stripped)
+        if sub_m and cur_verse is not None:
+            cur_text_parts.append(sub_m.group(1))
             continue
         # Verse marker: \v N text...
         m = re.match(r"^\\v\s+(\d+)\b\s*(.*)$", stripped)
@@ -210,7 +248,7 @@ def main():
     }
 
     for book_code, slug, idx, brenton_file in selected:
-        eng = load_brenton(brenton_file)
+        eng = apply_versification(load_brenton(brenton_file), book_code)
         chs = chapters_in_tf(api, book_code)
         book_verses = 0
         book_aligned = 0
