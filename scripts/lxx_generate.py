@@ -259,6 +259,98 @@ def _clause_head_of(api, w):
     return w
 
 
+# Silver-projection (2026-05-29): BHSA Hebrew ATU breaks projected through CATSS
+# onto PTNK Greek, adjudicated on the Greek bidirectional test by parallel Sonnet,
+# audited by 2 parallel Opus lenses (over-merge + atomicity). 92 survivors of 117
+# Sonnet-passes from 53 chapters; gate HALTED, survivors returned and now applied
+# here as candidate-augmentation -- each survivor adds a forced STAND clause-head
+# at its break-point, on top of PTNK's clause-detection.
+import json as _json
+import os as _os
+import re as _re
+
+_SILVER = None
+
+
+def _load_silver_breaks():
+    """Lazy-load the silver-projection survivor JSON; cache by (book, chapter)."""
+    global _SILVER
+    if _SILVER is not None:
+        return _SILVER
+    _SILVER = {}
+    path = _os.path.join(
+        _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))),
+        "data", "silver_projection_survivors.json"
+    )
+    if not _os.path.isfile(path):
+        return _SILVER
+    with open(path, encoding="utf-8") as f:
+        data = _json.load(f)
+    # chapter field is "<slug>-NN"; map slug -> TF book_code
+    _SLUG_TO_CODE = {"genesis": "GEN", "ruth": "RUTH"}
+    for s in data.get("survivors", []):
+        ch = s.get("chapter", "")
+        m = _re.match(r"^([a-z]+)-(\d+)$", ch)
+        if not m:
+            continue
+        slug, chap_s = m.group(1), int(m.group(2))
+        code = _SLUG_TO_CODE.get(slug)
+        if not code:
+            continue
+        ref = s.get("ref", "")
+        rm = _re.match(r"^(\d+):(\d+)$", ref)
+        if not rm:
+            continue
+        verse = int(rm.group(2))
+        _SILVER.setdefault((code, chap_s, verse), []).append(s)
+    return _SILVER
+
+
+def _form_norm(s):
+    """Strip diacritics/punctuation for robust form-matching."""
+    return _re.sub(r"[^Ͱ-Ͽἀ-῿]", "", (s or "").lower())
+
+
+def _find_silver_break_word(api, verse_words, greek_left):
+    """Given the survivor's greek_left text, find the word in the verse that
+    sits IMMEDIATELY AFTER the last content token of greek_left -- that word
+    is the projected break-point and should become a forced STAND clause-head.
+
+    Strategy: take the last 1-3 content tokens of greek_left, find their
+    consecutive match in verse_words by normalized form, return the word
+    that follows. Skip tokens that are pure punctuation."""
+    F = api.F
+    left_tokens = [t for t in _re.split(r"\s+", greek_left or "") if t.strip()]
+    # Drop pure punctuation tokens at the end (commas, mid-dots, periods)
+    content_tokens = [t for t in left_tokens if any(_form_norm(t))]
+    if not content_tokens:
+        return None
+    sig = content_tokens[-3:]
+    sig_norm = [_form_norm(t) for t in sig]
+    forms = [_form_norm(F.form.v(w) or "") for w in verse_words]
+    # Find consecutive match of sig_norm in forms; return word at next position
+    for i in range(len(forms) - len(sig_norm) + 1):
+        if all(forms[i + j] == sig_norm[j] for j in range(len(sig_norm))):
+            tail = i + len(sig_norm)
+            # Skip over any PUNCT-tagged token following the sig (rides preceding line)
+            while tail < len(verse_words) and F.upos.v(verse_words[tail]) == "PUNCT":
+                tail += 1
+            if tail < len(verse_words):
+                return verse_words[tail]
+            return None
+    # Fallback: match just the last 1 content token
+    if sig_norm:
+        last = sig_norm[-1]
+        for i, fn in enumerate(forms):
+            if fn == last:
+                tail = i + 1
+                while tail < len(verse_words) and F.upos.v(verse_words[tail]) == "PUNCT":
+                    tail += 1
+                if tail < len(verse_words):
+                    return verse_words[tail]
+    return None
+
+
 def generate(book_code, chap):
     api = load_api()
     F, E, L = api.F, api.E, api.L
@@ -371,6 +463,33 @@ def generate(book_code, chap):
     for w in chap_words:
         vn = L.u(w, "verse")[0]
         verse_of_word[w] = (F.chapter.v(vn), F.verse.v(vn))
+
+    # --- Silver-projection break application (post-atu_root) -------------
+    # BHSA Hebrew ATU breaks projected via CATSS onto PTNK Greek; survivors of
+    # the (c)-pipeline gate (parallel Sonnet adjudicate + 2-lens Opus audit).
+    # PTNK's clause-detection misses verbless elliptical predications and
+    # nominal-coordination predications -- silver-projection ADDS the missed
+    # break-points by directly reassigning atu_of for the words at/after each
+    # projected break. Doing this AFTER atu_root() avoids fighting the UD
+    # _clause_head_of() walk which only recognizes UD clause-heads.
+    _silver = _load_silver_breaks()
+    _verse_words = {}
+    for w in chap_words:
+        vn = L.u(w, "verse")[0]
+        _verse_words.setdefault(F.verse.v(vn), []).append(w)
+    for verse_num, _ws in _verse_words.items():
+        _ws_sorted = sorted(_ws)
+        for proj in _silver.get((book_code, chap, verse_num), []):
+            bw = _find_silver_break_word(api, _ws_sorted, proj.get("greek_left", ""))
+            if bw is None:
+                continue
+            old_atu = atu_of[bw]
+            bw_idx = _ws_sorted.index(bw)
+            # All same-old-atu words at/after bw in surface order go to a new
+            # ATU rooted at bw itself (bw is a valid word ID, unique).
+            for w in _ws_sorted[bw_idx:]:
+                if atu_of[w] == old_atu:
+                    atu_of[w] = bw
 
     # Punctuation rides the line it FOLLOWS (surface order), not its UD head's
     # clause: a clause-final comma / · / period must not start the next ATU line.

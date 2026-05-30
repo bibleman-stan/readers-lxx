@@ -165,12 +165,15 @@ def load_brenton(usfm_filename):
             cur_text_parts = []
             # Anything after \c N on the same line is rare; ignore.
             continue
-        # Sub-verse marker: \v Na  (e.g. \v 50a) -- USFM's way of marking
-        # a sub-verse split. Treat as continuation of the CURRENT verse;
-        # drop the marker token, keep the trailing prose.
-        sub_m = re.match(r"^\\v\s+\d+[a-z]+\s*(.*)$", stripped)
-        if sub_m and cur_verse is not None:
-            cur_text_parts.append(sub_m.group(1))
+        # Sub-verse marker: \v Na  (e.g. \v 50a). USFM's way of marking a
+        # sub-verse split in Brenton's translation. The PTNK gold treebank
+        # does NOT include sub-verses in the LXX numbering (the only known
+        # case in Gen+Ruth is Brenton's 31:50a "And Laban said to Jacob...";
+        # PTNK Gen 31 ends at 50/52 with no 51 or 50a slot). DROP the entire
+        # \v Na line so source-parity matches PTNK; this is a versification-
+        # divergence loss analogous to dropping Brenton Gen 32:1 (Laban-rose-up)
+        # because PTNK Gen 32 starts at "Jacob departed".
+        if re.match(r"^\\v\s+\d+[a-z]+\b", stripped):
             continue
         # Verse marker: \v N text...
         m = re.match(r"^\\v\s+(\d+)\b\s*(.*)$", stripped)

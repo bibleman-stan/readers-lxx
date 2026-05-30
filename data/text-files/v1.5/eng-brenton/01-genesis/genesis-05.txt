@@ -1,6 +1,6 @@
 5:1
 This is the genealogy
-of men in the day in which God made Adam,
+of men in the day in which God made Adam;
 in the image of God he made him:
 
 5:2
@@ -95,7 +95,8 @@ And all the days of Enoch were three hundred and sixty and five years.
 
 5:24
 And Enoch was well-pleasing to God,
-and was not found, because God translated him.
+and was not found,
+because God translated him.
 
 5:25
 And Mathusala lived an hundred and sixty and seven years,
